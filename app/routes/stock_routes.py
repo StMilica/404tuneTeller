@@ -114,6 +114,28 @@ def calculate_profit(symbol):
     prev_prices = get_prices_in_range(start_date - timedelta(days=period_days), start_date - timedelta(days=1))
     next_prices = get_prices_in_range(end_date + timedelta(days=1), end_date + timedelta(days=period_days))
 
+    # Optional: find stocks with better total profit in the same range
+    better_stocks = []
+    target_profit = ProfitCalculatorService.get_total_profit(main_prices)
+
+    all_stocks = Stock.query.all()
+
+    for other_stock in all_stocks:
+        if other_stock.id == stock.id:
+            continue  # skip the one we already calculated
+
+        other_prices = StockPrice.query.filter_by(stock_id=other_stock.id).all()
+        prices_in_range = [p for p in other_prices if start_date <= p.date <= end_date]
+
+        other_profit = ProfitCalculatorService.get_total_profit(prices_in_range)
+
+        if other_profit > target_profit:
+            better_stocks.append({
+                "symbol": other_stock.symbol,
+                "total_profit": round(other_profit, 2)
+            })
+
+
     return jsonify({
         "stock": stock.symbol,
         "main_range": {
@@ -133,7 +155,8 @@ def calculate_profit(symbol):
             "end": (end_date + timedelta(days=period_days)).strftime('%Y-%m-%d'),
             "best_trade": ProfitCalculatorService.get_best_trade(next_prices),
             "total_profit": ProfitCalculatorService.get_total_profit(next_prices)
-        }
+        },
+        "better_stocks": better_stocks
     }), 200
 
 

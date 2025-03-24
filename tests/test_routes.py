@@ -24,10 +24,10 @@ def create_sample_prices(stock_id, start_price=100.0):
         )
     return prices
 
-def create_test_stock_with_prices(app, symbol="TST"):
+def create_test_stock_with_prices(app, symbol="TST", start_price=100.0, step=1):
     with app.app_context():
         stock = Stock(
-            name="Test Stock",
+            name=f"Stock {symbol}",
             symbol=symbol,
             founded=datetime(2022, 1, 1).date()
         )
@@ -36,7 +36,7 @@ def create_test_stock_with_prices(app, symbol="TST"):
 
         base_date = datetime(2022, 1, 1).date()
         prices = [
-            StockPrice(date=base_date + timedelta(days=i), close=100 + i, stock_id=stock.id)
+            StockPrice(date=base_date + timedelta(days=i), close=start_price + i * step, stock_id=stock.id)
             for i in range(10)
         ]
         db.session.add_all(prices)
@@ -103,3 +103,30 @@ def test_profit_route_unknown_stock(client):
     response = client.get("/api/stocks/UNKNST/profit?start=2022-01-01&end=2022-01-05")
     assert response.status_code == 404
     assert "error" in response.get_json()
+
+def test_better_stock_profit(client, app):
+    create_test_stock_with_prices(app, "AAA", 100, step=1)  # target: increasing prices
+    create_test_stock_with_prices(app, "BBB", 200, step=3)  # also increasing, but bigger jump
+
+    response = client.get("/api/stocks/AAA/profit?start=2022-01-01&end=2022-01-05")
+    assert response.status_code == 200
+
+    data = response.get_json()
+    better = data.get("better_stocks", [])
+    
+    assert isinstance(better, list)
+    assert any(stock["symbol"] == "BBB" for stock in better)
+    assert data["stock"] == "AAA"
+
+def test_no_better_stocks(client, app):
+    create_test_stock_with_prices(app, "X", 50)
+    create_test_stock_with_prices(app, "Y", 50)  # equal profit
+    create_test_stock_with_prices(app, "Z", 40)  # lower starting point
+
+    response = client.get("/api/stocks/X/profit?start=2022-01-01&end=2022-01-05")
+    assert response.status_code == 200
+
+    data = response.get_json()
+    better = data.get("better_stocks", [])
+    assert isinstance(better, list)
+    assert len(better) == 0
