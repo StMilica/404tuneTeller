@@ -1,56 +1,8 @@
-from app import db
-from app.models.stock import Stock
-from app.models.stock_price import StockPrice
-from datetime import datetime, timedelta
-
-def create_sample_stock():
-    return Stock(
-        name="Test Corp",
-        symbol="TST",
-        founded=datetime(2020, 1, 1).date(),
-        description="Test stock"
-    )
-
-def create_sample_prices(stock_id, start_price=100.0):
-    prices = []
-    date = datetime(2020, 1, 1).date()
-    for i in range(10):
-        prices.append(
-            StockPrice(
-                date=date + timedelta(days=i),
-                close=start_price + i,
-                stock_id=stock_id
-            )
-        )
-    return prices
-
-def create_test_stock_with_prices(app, symbol="TST", start_price=100.0, step=1):
-    with app.app_context():
-        stock = Stock(
-            name=f"Stock {symbol}",
-            symbol=symbol,
-            founded=datetime(2022, 1, 1).date()
-        )
-        db.session.add(stock)
-        db.session.commit()
-
-        base_date = datetime(2022, 1, 1).date()
-        prices = [
-            StockPrice(date=base_date + timedelta(days=i), close=start_price + i * step, stock_id=stock.id)
-            for i in range(10)
-        ]
-        db.session.add_all(prices)
-        db.session.commit()
+from tests.conftest import create_stock, create_prices
 
 def test_profit_endpoint(client, app):
-    with app.app_context():
-        stock = create_sample_stock()
-        db.session.add(stock)
-        db.session.commit()
-
-        prices = create_sample_prices(stock.id)
-        db.session.add_all(prices)
-        db.session.commit()
+    stock_id = create_stock(app, symbol="TST", founded="2020-01-01")
+    create_prices(app, stock_id, start_price=100, step=1, days=10, start_date="2020-01-01")
 
     response = client.get("/api/stocks/TST/profit?start=2020-01-01&end=2020-01-05")
     assert response.status_code == 200
@@ -60,14 +12,8 @@ def test_profit_endpoint(client, app):
     assert data["stock"] == "TST"
 
 def test_get_prices_from_db(client, app):
-    with app.app_context():
-        stock = Stock(name="Test", symbol="TST", founded=datetime(2020,1,1).date())
-        db.session.add(stock)
-        db.session.commit()
-
-        price = StockPrice(date=datetime(2020,1,2).date(), close=150.0, stock_id=stock.id)
-        db.session.add(price)
-        db.session.commit()
+    stock_id = create_stock(app, symbol="TST", founded="2020-01-01")
+    create_prices(app, stock_id, start_price=150, days=1, start_date="2020-01-02")
 
     response = client.get("/api/db/stocks/TST/prices")
     assert response.status_code == 200
@@ -77,11 +23,11 @@ def test_get_prices_from_db(client, app):
     assert data["prices"][0]["close"] == 150.0
 
 def test_profit_route_valid(client, app):
-    create_test_stock_with_prices(app)
+    stock_id = create_stock(app, symbol="TST", founded="2022-01-01")
+    create_prices(app, stock_id, start_price=100, step=1, days=10)
 
     response = client.get("/api/stocks/TST/profit?start=2022-01-01&end=2022-01-05")
     assert response.status_code == 200
-
     data = response.get_json()
     assert data["stock"] == "TST"
     assert "main_range" in data
@@ -105,27 +51,29 @@ def test_profit_route_unknown_stock(client):
     assert "error" in response.get_json()
 
 def test_better_stock_profit(client, app):
-    create_test_stock_with_prices(app, "AAA", 100, step=1)  # target: increasing prices
-    create_test_stock_with_prices(app, "BBB", 200, step=3)  # also increasing, but bigger jump
+    s1_id = create_stock(app, "AAA", founded="2022-01-01")
+    s2_id = create_stock(app, "BBB", founded="2022-01-01")
+    create_prices(app, s1_id, start_price=100, step=1, days=10)
+    create_prices(app, s2_id, start_price=200, step=3, days=10)
 
     response = client.get("/api/stocks/AAA/profit?start=2022-01-01&end=2022-01-05")
     assert response.status_code == 200
-
     data = response.get_json()
     better = data.get("better_stocks", [])
-    
     assert isinstance(better, list)
     assert any(stock["symbol"] == "BBB" for stock in better)
     assert data["stock"] == "AAA"
 
 def test_no_better_stocks(client, app):
-    create_test_stock_with_prices(app, "X", 50)
-    create_test_stock_with_prices(app, "Y", 50)  # equal profit
-    create_test_stock_with_prices(app, "Z", 40)  # lower starting point
+    x_id = create_stock(app, "X", founded="2022-01-01")
+    y_id = create_stock(app, "Y", founded="2022-01-01")
+    z_id = create_stock(app, "Z", founded="2022-01-01")
+    create_prices(app, x_id, start_price=50, step=2)
+    create_prices(app, y_id, start_price=50, step=2)
+    create_prices(app, z_id, start_price=40, step=1)
 
     response = client.get("/api/stocks/X/profit?start=2022-01-01&end=2022-01-05")
     assert response.status_code == 200
-
     data = response.get_json()
     better = data.get("better_stocks", [])
     assert isinstance(better, list)
