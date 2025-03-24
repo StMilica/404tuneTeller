@@ -58,7 +58,7 @@ def init_database():
         db.create_all()
 
         for stock_data in STOCKS:
-            print(f"⏳ Loading: {stock_data['symbol']}")
+            print(f"Loading: {stock_data['symbol']}")
 
             stock = Stock(
                 name=stock_data["name"],
@@ -78,7 +78,7 @@ def init_database():
             ]
             db.session.add_all(prices)
             db.session.commit()
-            print(f"✔ Loaded {len(prices)} prices for {stock.symbol}")
+            print(f"Loaded {len(prices)} prices for {stock.symbol}")
 
 if __name__ == "__main__":
     init_database()

@@ -126,7 +126,6 @@ def calculate_profit(symbol):
         StockPrice.date <= next_end
     ).order_by(StockPrice.date).all()
 
-    # Optional: find stocks with better total profit in the same range
     better_stocks = []
     target_profit = ProfitCalculatorService.get_total_profit(main_prices)
 
@@ -134,7 +133,7 @@ def calculate_profit(symbol):
 
     for other_stock in all_stocks:
         if other_stock.id == stock.id:
-            continue  # skip the one we already calculated
+            continue
 
         prices_in_range = StockPrice.query.filter(
             StockPrice.stock_id == other_stock.id,
