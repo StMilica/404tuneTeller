@@ -1,18 +1,17 @@
 from datetime import datetime, date
+from app import db
 
-class Stock:
-    def __init__(self, name, symbol, founded, description=None):
-        self.id = None # This will be set by the database
-        self.name = name
-        self.symbol = symbol
-        self.founded = self.parse_date(founded)
-        self.description = description
+class Stock(db.Model):
+    __tablename__ = 'stocks'
 
-    def parse_date(self, value):
-        if isinstance(value, str):
-            return datetime.strptime(value, '%Y-%m-%d').date()
-        elif isinstance(value, date):
-            return value
-        else:
-            raise ValueError("Invalid date format for 'founded'")
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(128), nullable=False)
+    symbol = db.Column(db.String(10), unique=True, nullable=False)
+    founded = db.Column(db.Date, nullable=False)
+    description = db.Column(db.Text, nullable=True)
+
+    prices = db.relationship('StockPrice', backref='stock', lazy=True, cascade="all, delete-orphan")
+
+    def __repr__(self):
+        return f'<Stock {self.symbol}>'
  
