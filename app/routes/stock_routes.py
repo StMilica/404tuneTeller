@@ -3,7 +3,6 @@ from datetime import datetime, timedelta
 from marshmallow import ValidationError
 
 from app.services.stock_service import StockService
-from app.services.stock_price_service import StockPriceService
 from app.services.profit_calculator import ProfitCalculatorService
 from app.schemas.stock_schema import StockSchema
 from app.models.stock import Stock
@@ -11,7 +10,6 @@ from app.models.stock_price import StockPrice
 
 stock_routes = Blueprint('stock_routes', __name__)
 stock_service = StockService()
-stock_price_service = StockPriceService()
 
 @stock_routes.route('/api/stocks', methods=['GET'])
 def get_stocks():
@@ -104,15 +102,29 @@ def calculate_profit(symbol):
 
     period_days = (end_date - start_date).days + 1
 
-    # Fetch 3 ranges: before, target, after
-    prices = StockPrice.query.filter_by(stock_id=stock.id).order_by(StockPrice.date).all()
+    main_prices = StockPrice.query.filter(
+        StockPrice.stock_id == stock.id,
+        StockPrice.date >= start_date,
+        StockPrice.date <= end_date
+    ).order_by(StockPrice.date).all()
 
-    def get_prices_in_range(start, end):
-        return [p for p in prices if start <= p.date <= end]
+    prev_start = start_date - timedelta(days=period_days)
+    prev_end = start_date - timedelta(days=1)
 
-    main_prices = get_prices_in_range(start_date, end_date)
-    prev_prices = get_prices_in_range(start_date - timedelta(days=period_days), start_date - timedelta(days=1))
-    next_prices = get_prices_in_range(end_date + timedelta(days=1), end_date + timedelta(days=period_days))
+    prev_prices = StockPrice.query.filter(
+        StockPrice.stock_id == stock.id,
+        StockPrice.date >= prev_start,
+        StockPrice.date <= prev_end
+    ).order_by(StockPrice.date).all()
+
+    next_start = end_date + timedelta(days=1)
+    next_end = end_date + timedelta(days=period_days)
+
+    next_prices = StockPrice.query.filter(
+        StockPrice.stock_id == stock.id,
+        StockPrice.date >= next_start,
+        StockPrice.date <= next_end
+    ).order_by(StockPrice.date).all()
 
     # Optional: find stocks with better total profit in the same range
     better_stocks = []
@@ -124,8 +136,11 @@ def calculate_profit(symbol):
         if other_stock.id == stock.id:
             continue  # skip the one we already calculated
 
-        other_prices = StockPrice.query.filter_by(stock_id=other_stock.id).all()
-        prices_in_range = [p for p in other_prices if start_date <= p.date <= end_date]
+        prices_in_range = StockPrice.query.filter(
+            StockPrice.stock_id == other_stock.id,
+            StockPrice.date >= start_date,
+            StockPrice.date <= end_date
+        ).all()
 
         other_profit = ProfitCalculatorService.get_total_profit(prices_in_range)
 
@@ -158,35 +173,3 @@ def calculate_profit(symbol):
         },
         "better_stocks": better_stocks
     }), 200
-
-
-# In-memory support for stock prices
-# import os
-# @stock_routes.route('/api/stocks/upload-prices', methods=['POST'])
-# def upload_prices():
-#     data = request.get_json()
-#     symbol = data.get('symbol')
-#     filename = data.get('filename')
-
-#     if not symbol or not filename:
-#         return jsonify({'error': 'Both symbol and filename are required.'}), 400
-
-#     filepath = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'data', filename))
-
-#     try:
-#         count = stock_price_service.load_csv_for_symbol(symbol, filepath)
-#         return jsonify({'message': f'Loaded {count} prices for {symbol}.'}), 200
-#     except FileNotFoundError:
-#         return jsonify({'error': f'File {filename} not found.'}), 404
-#     except ValueError as e:
-#         return jsonify({'error': str(e)}), 400
-    
-# @stock_routes.route('/api/stocks/<string:symbol>/prices', methods=['GET'])
-# def get_stock_prices(symbol):
-#     prices = stock_price_service.get_prices(symbol)
-
-#     if not prices:
-#         return jsonify({'error': f'No prices found for symbol {symbol}'}), 404
-
-#     data = [price.to_dict() for price in prices]
-#     return jsonify(data), 200
