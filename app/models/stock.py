@@ -10,6 +10,7 @@ class Stock(db.Model):
     founded = db.Column(db.Date, nullable=False)
     description = db.Column(db.Text, nullable=True)
 
+    # One-to-many relationship with StockPrice
     prices = db.relationship('StockPrice', backref='stock', lazy=True, cascade="all, delete-orphan")
 
     def __repr__(self):
