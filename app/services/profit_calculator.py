@@ -1,4 +1,4 @@
-from datetime import timedelta
+from app.utils.formatting import format_price_object
 
 class ProfitCalculatorService:
 
@@ -20,11 +20,14 @@ class ProfitCalculatorService:
             if price.close < min_price.close:
                 min_price = price
 
+        buy_date, buy_price = format_price_object(best_pair[0])
+        sell_date, sell_price = format_price_object(best_pair[1])
+
         return {
-            "buy_date": best_pair[0].date.strftime('%Y-%m-%d') if best_pair[0] else None,
-            "buy_price": best_pair[0].close if best_pair[0] else None,
-            "sell_date": best_pair[1].date.strftime('%Y-%m-%d') if best_pair[1] else None,
-            "sell_price": best_pair[1].close if best_pair[1] else None,
+            "buy_date": buy_date,
+            "buy_price": buy_price,
+            "sell_date": sell_date,
+            "sell_price": sell_price,
             "profit": round(max_profit, 2)
         }
 
