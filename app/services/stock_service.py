@@ -7,7 +7,7 @@ class StockService:
         return Stock.query.all()
 
     def get_stock(self, stock_id):
-        return Stock.query.get(stock_id)
+        return db.session.get(Stock, stock_id)
 
     def create_stock(self, stock):
         db.session.add(stock)
