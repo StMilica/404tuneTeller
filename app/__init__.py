@@ -10,7 +10,10 @@ def create_app():
 
     db.init_app(app)
 
-    from app.routes import stock_routes
+    from app.routes.stock_routes import stock_routes
+    from app.routes.health_routes import health_routes
+
     app.register_blueprint(stock_routes)
+    app.register_blueprint(health_routes)
 
     return app
