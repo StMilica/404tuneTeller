@@ -1,0 +1,144 @@
+{
+    "info": {
+      "name": "404tuneTeller - Stock API",
+      "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+      "_postman_id": "404tuneTeller-20250325114055"
+    },
+    "item": [
+      {
+        "name": "Ping",
+        "request": {
+          "method": "GET",
+          "url": {
+            "raw": "http://localhost:5000/api/ping",
+            "protocol": "http",
+            "host": [
+              "localhost"
+            ],
+            "port": "5000",
+            "path": [
+              "api",
+              "ping"
+            ]
+          }
+        }
+      },
+      {
+        "name": "Get All Stocks",
+        "request": {
+          "method": "GET",
+          "url": {
+            "raw": "http://localhost:5000/api/stocks",
+            "protocol": "http",
+            "host": [
+              "localhost"
+            ],
+            "port": "5000",
+            "path": [
+              "api",
+              "stocks"
+            ]
+          }
+        }
+      },
+      {
+        "name": "Create New Stock (TEST)",
+        "request": {
+          "method": "POST",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"name\": \"Test Stock Inc.\",\n  \"symbol\": \"TSTS\",\n  \"founded\": \"2025-03-25\",\n  \"description\": \"Test stock created via Postman\"\n}"
+          },
+          "url": {
+            "raw": "http://localhost:5000/api/stocks",
+            "protocol": "http",
+            "host": [
+              "localhost"
+            ],
+            "port": "5000",
+            "path": [
+              "api",
+              "stocks"
+            ]
+          }
+        }
+      },
+      {
+        "name": "Delete Stock (id=1)",
+        "request": {
+          "method": "DELETE",
+          "url": {
+            "raw": "http://localhost:5000/api/stocks/1",
+            "protocol": "http",
+            "host": [
+              "localhost"
+            ],
+            "port": "5000",
+            "path": [
+              "api",
+              "stocks",
+              "1"
+            ]
+          }
+        }
+      },
+      {
+        "name": "Get Stock Prices (AAPL)",
+        "request": {
+          "method": "GET",
+          "url": {
+            "raw": "http://localhost:5000/api/db/stocks/AAPL/prices",
+            "protocol": "http",
+            "host": [
+              "localhost"
+            ],
+            "port": "5000",
+            "path": [
+              "api",
+              "db",
+              "stocks",
+              "AAPL",
+              "prices"
+            ]
+          }
+        }
+      },
+      {
+        "name": "Get Profit (AAPL)",
+        "request": {
+          "method": "GET",
+          "url": {
+            "raw": "http://localhost:5000/api/stocks/AAPL/profit?start=2020-01-02&end=2020-01-10",
+            "protocol": "http",
+            "host": [
+              "localhost"
+            ],
+            "port": "5000",
+            "path": [
+              "api",
+              "stocks",
+              "AAPL",
+              "profit"
+            ],
+            "query": [
+              {
+                "key": "start",
+                "value": "2020-01-02"
+              },
+              {
+                "key": "end",
+                "value": "2020-01-10"
+              }
+            ]
+          }
+        }
+      }
+    ]
+  }
+  
